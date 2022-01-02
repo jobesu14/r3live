@@ -378,23 +378,23 @@ void   R3LIVE::process_image( cv::Mat &temp_img, double msg_time )
     if ( m_camera_start_ros_tim < 0 )
     {
         m_camera_start_ros_tim = msg_time;
-        m_vio_scale_factor = 1280 * m_image_downsample_ratio / temp_img.cols; // 320 * 24
+        m_vio_scale_factor = 1; //1280 * m_image_downsample_ratio / temp_img.cols; // 320 * 24
         // load_vio_parameters();
         set_initial_camera_parameter( g_lio_state, m_camera_intrinsic.data(), m_camera_dist_coeffs.data(), m_camera_ext_R.data(),
                                       m_camera_ext_t.data(), m_vio_scale_factor );
         cv::eigen2cv( g_cam_K, intrinsic );
         cv::eigen2cv( g_cam_dist, dist_coeffs );
-        initUndistortRectifyMap( intrinsic, dist_coeffs, cv::Mat(), intrinsic, cv::Size( 1280 / m_vio_scale_factor, 1024 / m_vio_scale_factor ),
+        initUndistortRectifyMap( intrinsic, dist_coeffs, cv::Mat(), intrinsic, cv::Size(640 , 400), // 1280 / m_vio_scale_factor, 1024 / m_vio_scale_factor ),
                                  CV_16SC2, m_ud_map1, m_ud_map2 );
         m_thread_pool_ptr->commit_task( &R3LIVE::service_pub_rgb_maps, this);
         m_thread_pool_ptr->commit_task( &R3LIVE::service_VIO_update, this);
-        m_mvs_recorder.init( g_cam_K, 1280 / m_vio_scale_factor, &m_map_rgb_pts );
+        m_mvs_recorder.init( g_cam_K, 640, &m_map_rgb_pts ); // 1280 / m_vio_scale_factor, &m_map_rgb_pts );
         m_mvs_recorder.set_working_dir( m_map_output_dir );
     }
 
     if ( m_image_downsample_ratio != 1.0 )
     {
-        cv::resize( temp_img, img_get, cv::Size( 1280 / m_vio_scale_factor, 1024 / m_vio_scale_factor ) );
+        cv::resize( temp_img, img_get, cv::Size( 640, 400 )); // 1280 / m_vio_scale_factor, 1024 / m_vio_scale_factor ) );
     }
     else
     {
@@ -406,7 +406,7 @@ void   R3LIVE::process_image( cv::Mat &temp_img, double msg_time )
         img_pose->m_raw_img = img_get;
     }
     cv::remap( img_get, img_pose->m_img, m_ud_map1, m_ud_map2, cv::INTER_LINEAR );
-    // cv::imshow("sub Img", img_pose->m_img);
+    cv::imshow("sub Img", img_pose->m_img);
     img_pose->m_timestamp = msg_time;
     img_pose->init_cubic_interpolation();
     img_pose->image_equalize();
@@ -1066,7 +1066,7 @@ char R3LIVE::cv_keyboard_callback()
 void R3LIVE::service_VIO_update()
 {
     // Init cv windows for debug
-    op_track.set_intrinsic( g_cam_K, g_cam_dist * 0, cv::Size( 1280 / m_vio_scale_factor, 1024 / m_vio_scale_factor ) );
+    op_track.set_intrinsic( g_cam_K, g_cam_dist * 0, cv::Size( 640, 400)); //1280 / m_vio_scale_factor, 1024 / m_vio_scale_factor ) );
     op_track.m_maximum_vio_tracked_pts = m_maximum_vio_tracked_pts;
     m_map_rgb_pts.m_minimum_depth_for_projection = m_tracker_minimum_depth;
     m_map_rgb_pts.m_maximum_depth_for_projection = m_tracker_maximum_depth;
